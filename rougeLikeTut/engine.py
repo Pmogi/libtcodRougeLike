@@ -1,7 +1,7 @@
 import tcod as libtcod
 
 from input_handler import handle_keys
-from entity import Entity
+from entity import Entity, get_blocking_entities_at_location
 from rendering_functions import clear_all, render_all
 
 from map_objects.game_map import GameMap
@@ -24,6 +24,7 @@ def main():
     fov_light_walls = True
     fov_radius = 10
 
+    max_monsters_per_room = 3
     colors = {
         'dark_wall'   : libtcod.Color(0, 0, 100),
         'dark_ground' : libtcod.Color(50, 50, 150),
@@ -32,13 +33,10 @@ def main():
     }
 
     # initial position for player
-    player = Entity(int(screen_width / 2), int(screen_height / 2), '@', libtcod.white)
+    player = Entity(0, 0, '@', libtcod.white, 'Player', blocks=True)
 
-    # test NPC
-    npc = Entity(int(screen_width / 2 - 5), int(screen_height / 2), '@', libtcod.yellow)
-
-    # creates list of current entities
-    entities = [npc, player]
+    # creates list to hold the map's entities
+    entities = [player]
 
     # set font for game
     libtcod.console_set_custom_font('arial10x10.png', libtcod.FONT_TYPE_GREYSCALE | libtcod.FONT_LAYOUT_TCOD)
@@ -51,7 +49,7 @@ def main():
 
     # instance the game's map
     game_map = GameMap(map_width, map_height)
-    game_map.make_map(max_rooms, room_min_size, room_max_size, map_width, map_height, player)
+    game_map.make_map(max_rooms, room_min_size, room_max_size, map_width, map_height, player, entities, max_monsters_per_room)
 
     # init field-of-view for player character
     fov_recompute = True
@@ -67,7 +65,7 @@ def main():
         if fov_recompute:
             compute_fov(fov_map, player.x, player.y, fov_radius, fov_light_walls, fov_algorithm)
             # recomputed, until player moves, don't recomputer fov map
-            
+
 
 
         libtcod.console_set_default_foreground(con, libtcod.white)
@@ -95,13 +93,22 @@ def main():
             # from the move dictionary obtain the x and y and update player pos
             dx, dy = move
 
+            destination_x = player.x + dx
+            destination_y = player.y + dy
+
             # check if direction of movement is towards blocked tile
             if not game_map.is_blocked(player.x + dx, player.y + dy):
+                # check if there is a blocking Entity
+                target = get_blocking_entities_at_location(entities, destination_x, destination_y)
 
-                # if not blocked, move player there
-                player.move(dx, dy)
+                if target:
+                    print ("You kick the" + target.name + " in the shins!")
+                else:
+                    # if not blocked, move player there
+                    player.move(dx, dy)
 
-                fov_recompute = True
+                    # on next map redraw, redraw the FOV
+                    fov_recompute = True
 
         if exit:
             return True
