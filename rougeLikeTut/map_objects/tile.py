@@ -8,6 +8,9 @@ class Tile:
         # if a tile is blocked, it cannot be moved through
         self.blocked = blocked
 
+        # tile is initially not known to the player
+        self.explored = False
+
         # By default, if a tile is blocks movement, it also blocks sight
         if block_sight is None:
             block_sight = blocked
